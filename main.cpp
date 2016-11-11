@@ -18,27 +18,6 @@ void* download(void* ptr);
 
 int main()
 {
-	pid_t pc, pid;
-	pc = fork();
-	if (pc < 0)
-	{
-		cout << ("error fork") << endl;
-		exit(1);
-	}
-	else if (pc > 0)
-	{
-		sleep(5);
-		exit(0);
-	}
-		
-	
-	pid = setsid(); //第二步
-	if (pid < 0)
-		perror("setsid error");
-	chdir("/"); //第三步
-	umask(0); //第四步
-	for (int i = 0; i < MAXFILE; i++) //第五步
-		close(i);
 	for (int i = 0; i < 150; i++)
 	{
 		int err;
@@ -90,14 +69,15 @@ void send_and_recv(int sockfd, char* url, char* fun_type, char* accept_type, cha
 			connection_type);
 //以上是在组织请求的头部，打印出的结果就是文章开头所写
 
-	int send = write(sockfd, request, strlen(request));
+	
+	 send(sockfd, request, strlen(request), MSG_NOSIGNAL);
 	//printf("%s", request);
 	free(request);
 	char* response = (char *) malloc(1024 * sizeof(char));
 	int length;
 	do
 	{
-		length = read(sockfd, response, 1024);
+		length = recv(sockfd, response, 1024,MSG_NOSIGNAL);
 		char* loc = strstr(response, "\r\n\r\n"); //截获返回头部，以\r\n\r\n为标识
 		if (loc)
 		{
@@ -109,9 +89,9 @@ void send_and_recv(int sockfd, char* url, char* fun_type, char* accept_type, cha
 		{
 			//write(1, response, length);
 		}
-		if (!length)//注意，因为之前采用的是close方法，也就是说一旦传输数据完毕，则服务器端会断开链接，则read函数会返回0，所以这里 会退出循环。如果采用的是Keep-Alive则服务器不关闭TCP链接，也就说程序将会被阻塞在read函数中，因此要注意的是自己判断是否读到了响应 的结尾，然后在再次调用read之前退出循环。
+		if (length==0||length==-1)//注意，因为之前采用的是close方法，也就是说一旦传输数据完毕，则服务器端会断开链接，则read函数会返回0，所以这里 会退出循环。如果采用的是Keep-Alive则服务器不关闭TCP链接，也就说程序将会被阻塞在read函数中，因此要注意的是自己判断是否读到了响应 的结尾，然后在再次调用read之前退出循环。
 			break ;
-	} while (1) ;
+	} while (1);
 	free(response);
 }
 
